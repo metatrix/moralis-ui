@@ -6,11 +6,12 @@ import {useAPIContract} from 'hooks/useAPIContract'
 import {useMoralisWeb3Api} from "react-moralis";
 import marketplace from "contracts/marketplace.json";
 import bive from "contracts/bive.json";
-import ERC721 from "contracts/ERC721.json"
 import { FileSearchOutlined, ToolOutlined, ShoppingCartOutlined,CloseOutlined  } from "@ant-design/icons";
 import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvider";
 import { getExplorer } from "helpers/networks";
-import AddressInput from "./AddressInput";
+import Address from "./Address/Address";
+import TokenPrice from "./TokenPrice";
+
 const { Meta } = Card;
 const styles = {
   NFTs: {
@@ -59,7 +60,7 @@ function NFTMarketplace(){
       params:{}
     }
     Web3API.native.runContractFunction(options)
-    .then(async (res)=>{
+    .then((res)=>{
       let offer = res.map((item) => {
         let marketOffer = {
           offeringId : item[0],
@@ -71,15 +72,14 @@ function NFTMarketplace(){
         }
         getOfferMetadata(marketOffer).then(tokenMetadata => {
           tokenMetadata.metadata = JSON.parse(tokenMetadata.metadata);
-          marketOffer.image = tokenMetadata.metadata?.image.replace('ipfs://','https://ipfs.io/ipfs/');
+          marketOffer.image = tokenMetadata.metadata?.image.replace('ipfs://','https://ipfs.moralis.io:2053/ipfs/');
           marketOffer.tokenMetadata = tokenMetadata;
-          console.log(marketOffer);
         })
-      
         return marketOffer
       })
       
       setOpenningOffers(offer);
+      console.log(offer);
     });
 
     fetchERC20Balance().then((assets) => {
@@ -193,8 +193,18 @@ function NFTMarketplace(){
               }
               key={index}
             >
-              <Meta title={"Price: " + Moralis.Units.FromWei(nft.price,biveBalance?.decimals) + " " +  biveBalance?.symbol}  description={nft.nftContract} />
-              <h4>{"Seller: " + nft.seller}</h4>
+              <Meta title={`Offer ID:${nft?.offeringId}`}/>
+              <span>
+                Contract Address:
+              <Address avatar="left" copyable size="4" address={nft?.nftContract} />
+              </span>
+              <span>
+                Seller:
+              <Address avatar="left" copyable size="4" address={nft?.seller} />
+              </span>
+              <span>
+                Price: {(Moralis.Units.FromWei(nft?.price, biveBalance?.decimals)).toFixed(6) + ` ${biveBalance?.symbol}`}
+              </span>
               
             </Card>
           ))}
