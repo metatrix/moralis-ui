@@ -12,7 +12,7 @@ function MoralisDappProvider({ children }) {
     });
 
     Moralis.onAccountsChanged(function (address) {
-      setWalletAddress(address[0]);
+      // setWalletAddress(address[0]);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -20,12 +20,12 @@ function MoralisDappProvider({ children }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setChainId(web3.givenProvider?.chainId));
   useEffect(
-    () => setWalletAddress(web3.givenProvider?.selectedAddress || user?.get("ethAddress")),
+    () => setWalletAddress(user?.get("ethAddress") || web3.givenProvider?.selectedAddress),
     [web3, user]
   );
 
   return (
-    <MoralisDappContext.Provider value={{ walletAddress, chainId }}>
+    <MoralisDappContext.Provider value={{ setWalletAddress,walletAddress, chainId }}>
       {children}
     </MoralisDappContext.Provider>
   );
