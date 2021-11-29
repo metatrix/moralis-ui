@@ -10,7 +10,7 @@ import { FileSearchOutlined, ToolOutlined, ShoppingCartOutlined,CloseOutlined  }
 import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvider";
 import { getExplorer } from "helpers/networks";
 import Address from "./Address/Address";
-import TokenPrice from "./TokenPrice";
+import contractAddress from "../contracts/contractAddresses";
 
 const { Meta } = Card;
 const styles = {
@@ -25,8 +25,6 @@ const styles = {
   },
 };
 
-const biveAddress = "0x477a4143a0d28922e00c677f89a2347081f4d6d1";
-const marketplaceAddress = "0x8417EBB62b71D55fa60e3EF15688754d9e460B46";
 function NFTMarketplace(){
   const { chainId,walletAddress } = useMoralisDapp();
   const { Moralis } = useMoralis();
@@ -38,6 +36,8 @@ function NFTMarketplace(){
   const { fetchERC20Balance } = useERC20Balance();
   const [biveBalance, setBiveBalance] = useState(null);
 
+  let biveAddress = contractAddress[parseInt(chainId, 16)].bive;
+  let marketplaceAddress = contractAddress[parseInt(chainId, 16)].marketplace;
 
   const allowanceCall = useAPIContract({
     chain: chainId,
@@ -54,32 +54,42 @@ function NFTMarketplace(){
   useEffect(() => {  
     let options = {
       chain: chainId,
-      function_name:'fetchOpenOfferings',
+      function_name:'getOpeningOffersId',
       abi: marketplace.abi,
       address: marketplaceAddress,
       params:{}
     }
+    let offers = [];
     Web3API.native.runContractFunction(options)
-    .then((res)=>{
-      let offer = res.map((item) => {
-        let marketOffer = {
-          offeringId : item[0],
-          nftContract: item[1],
-          tokenId: item[2],
-          seller :item[3],
-          price: item[4],
-          closed: item[5]
-        }
-        getOfferMetadata(marketOffer).then(tokenMetadata => {
-          tokenMetadata.metadata = JSON.parse(tokenMetadata.metadata);
-          marketOffer.image = tokenMetadata.metadata?.image.replace('ipfs://','https://ipfs.moralis.io:2053/ipfs/');
-          marketOffer.tokenMetadata = tokenMetadata;
+    .then((results)=>{
+      results.forEach((item) => {
+        Web3API.native.runContractFunction({
+          chain:chainId,
+          function_name: 'getOffer',
+          abi:marketplace.abi,
+          address: marketplaceAddress,
+          params:{offerId: item}
+        }).then(offer=>{
+          let marketOffer = {
+            offerId : offer[0],
+            hostContract: offer[1],
+            tokenId: offer[2],
+            seller :offer[3],
+            price: offer[4],
+            closed: offer[5]
+          }
+          getOfferMetadata(marketOffer).then(tokenMetadata => {
+            tokenMetadata.metadata = JSON.parse(tokenMetadata.metadata);
+            marketOffer.image = tokenMetadata.metadata?.image.replace('ipfs://','https://ipfs.moralis.io:2053/ipfs/');
+            marketOffer.tokenMetadata = tokenMetadata;
+          })
+          offers.push(marketOffer);
         })
-        return marketOffer
+        
       })
       
-      setOpenningOffers(offer);
-      console.log(offer);
+      setOpenningOffers(offers);
+      console.log(offers);
     });
 
     fetchERC20Balance().then((assets) => {
@@ -97,9 +107,9 @@ function NFTMarketplace(){
     let options = {
       abi: marketplace.abi,
       contractAddress: marketplaceAddress,
-      functionName:'changeOfferingPrice',
+      functionName:'changePrice',
       params:{
-        offeringId: nftToken.offeringId,
+        offerId: nftToken.offeringId,
         newPrice: Moralis.Units.Token(offerPrice,biveBalance?.decimals)
       }
     }
@@ -110,9 +120,9 @@ function NFTMarketplace(){
     let options = {
       abi: marketplace.abi,
       contractAddress: marketplaceAddress,
-      functionName:'cancelOffering',
+      functionName:'cancel',
       params:{
-        offeringId: nft.offeringId,
+        offerId: nft.offerId,
       }
   }
   await Moralis.executeFunction(options);
@@ -141,9 +151,9 @@ function NFTMarketplace(){
     let options = {
       abi: marketplace.abi,
       contractAddress: marketplaceAddress,
-      functionName:'buyOffering',
+      functionName:'buy',
       params:{
-        offeringId: nft.offeringId,
+        offerId: nft.offerId,
       }
   }
   await Moralis.executeFunction(options);
@@ -151,7 +161,7 @@ function NFTMarketplace(){
 
   const getOfferMetadata = async(offer) => {
     let options = {
-      address: offer.nftContract,
+      address: offer.hostContract,
       token_id: offer.tokenId,
       chain:chainId
     }
@@ -168,7 +178,7 @@ function NFTMarketplace(){
               actions={[
                 <Tooltip title="View On Blockexplorer">
                   <FileSearchOutlined
-                    onClick={() => window.open(`${getExplorer(chainId)}address/${nft.nft_contract}`, "_blank")}
+                    onClick={() => window.open(`${getExplorer(chainId)}address/${nft.hostContract}`, "_blank")}
                   />
                 </Tooltip>,
                 <Tooltip title="Cancel offer">
@@ -193,10 +203,10 @@ function NFTMarketplace(){
               }
               key={index}
             >
-              <Meta title={`Offer ID:${nft?.offeringId}`}/>
+              <Meta title={`Offer ID:${nft?.offerId}`}/>
               <span>
                 Contract Address:
-              <Address avatar="left" copyable size="4" address={nft?.nftContract} />
+              <Address avatar="left" copyable size="4" address={nft?.hostContract} />
               </span>
               <span>
                 Seller:
@@ -210,7 +220,7 @@ function NFTMarketplace(){
           ))}
 
       <Modal
-        title={`Change price of market offer id ${nftToken?.offeringId || "NFT"} - ${nftToken?.nftContract} with ID ${nftToken?.tokenId}`}
+        title={`Change price of market offer id ${nftToken?.offerId || "NFT"} - ${nftToken?.hostContract} with ID ${nftToken?.tokenId}`}
         visible={visible}
         onCancel={() => setVisible(false)}
         onOk={() => submitChangePrice()}
