@@ -187,6 +187,7 @@ function Account() {
                         }}
                         onClick={async () => {
                             await authenticate({ signingMessage: "Bizverse Authenticate "});
+                            console.log('Auth', Moralis.User.current())
                             var formData = new FormData();
                             formData.append('server_key', 'c16c4d96ae7eae09f9e9100902c478ec');
                             formData.append('data', Moralis.User.current().attributes.authData.moralisEth.data);
