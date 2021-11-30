@@ -20,7 +20,10 @@ import Contract from "components/Contract/Contract";
 import Text from "antd/lib/typography/Text";
 import Ramper from "components/Ramper";
 import MenuItems from "./components/MenuItems";
+import {store, useGlobalState} from 'state-pool';
 const { Header, Footer } = Layout;
+
+store.setState("logged", false);
 
 const styles = {
   content: {
@@ -54,6 +57,7 @@ const styles = {
 };
 const App = ({ isServerInfo }) => {
   const { isWeb3Enabled, enableWeb3, isAuthenticated, isWeb3EnableLoading } = useMoralis();
+  const [logged, setLogged] = useGlobalState("logged");
 
   useEffect(() => {
     if (isAuthenticated && !isWeb3Enabled && !isWeb3EnableLoading) enableWeb3();
@@ -74,14 +78,14 @@ const App = ({ isServerInfo }) => {
               image="https://cloudflare-ipfs.com/ipfs/QmXttGpZrECX5qCyXbBQiqgQNytVGeZW5Anewvh2jc4psg/"
               size="40px"
             />
-            <NativeBalance />
+            {/*<NativeBalance />*/}
             <Account />
           </div>
         </Header>
 
         <div style={styles.content}>
-          {!isAuthenticated ? (
-            <>Please login using the "Authenticate" button</>
+          {!logged ? (
+            <>Please login using the "Login" button</>
           ) : (
             <Switch>
               <Route path="/quickstart">
@@ -124,11 +128,14 @@ const App = ({ isServerInfo }) => {
               <Route path="/nftMinting">
                 <NFTMinting />
               </Route>
+              <Route path="/contract">
+                <Contract />
+              </Route>
               <Route exact path="/">
                 <Redirect to="/quickstart" />
               </Route>
               <Route path="/nonauthenticated">
-                <>Please login using the "Authenticate" button</>
+                <>Please login using the "Login" button</>
               </Route>
               
             </Switch>

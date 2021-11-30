@@ -111,8 +111,8 @@ function NFTMarketplace(){
       contractAddress: marketplaceAddress,
       functionName:'changePrice',
       params:{
-        offerId: nftToken.offeringId,
-        newPrice: Moralis.Units.Token(offerPrice,biveBalance?.decimals)
+        offerId: nftToken.offerId,
+        newPrice: Moralis.Units.Token(offerPrice,biveBalance)
       }
     }
   await Moralis.executeFunction(options);

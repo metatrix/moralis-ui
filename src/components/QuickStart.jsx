@@ -1,8 +1,20 @@
-import { Card, Timeline, Typography } from "antd";
-import React, { useMemo } from "react";
+import {Button, Card, Timeline, Typography} from "antd";
+import React, {useMemo, useState} from "react";
 import { useMoralis } from "react-moralis";
-
+import {store, useGlobalState} from "state-pool";
+import axios from "axios";
 const { Text } = Typography;
+
+store.setState("socialUser",{
+  user_id: null,
+  username: null,
+  email: null,
+  first_name: null,
+  last_name: null,
+  public_key: null,
+  moralis_password: null,
+  access_token: null
+});
 
 const styles = {
   title: {
@@ -23,184 +35,117 @@ const styles = {
 };
 
 export default function QuickStart({ isServerInfo }) {
-  const { Moralis } = useMoralis();
-
+  const { Moralis, authenticate} = useMoralis();
+  const [logged] = useGlobalState("logged");
+  const [socialUser, setSocialUser, updateSocialUser] = useGlobalState("socialUser");
   const isInchDex = useMemo(() => (Moralis.Plugins?.oneInch ? true : false), [Moralis.Plugins?.oneInch]);
+  const [publicKey, setPublicKey] = useState();
+  const [secret, setSecret] = useState();
+  const [token, setToken] = useState();
 
   return (
-    <div style={{ display: "flex", gap: "10px" }}>
-      <Card
-        style={styles.card}
-        title={
-          <>
-            📝 <Text strong>To-Do List</Text>
-          </>
-        }
-      >
-        <Timeline mode="left" style={styles.timeline}>
-          <Timeline.Item dot="📄">
-            <Text delete style={styles.text}>
-              Clone or fork{" "}
-              <a
-                href="https://github.com/ethereum-boilerplate/ethereum-boilerplate#-quick-start"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                ethereum-boilerplate
-              </a>{" "}
-            </Text>
-          </Timeline.Item>
-
-          <Timeline.Item dot="💿">
-            <Text delete style={styles.text}>
-              Install all dependencies: <Text code>npm install</Text>
-            </Text>
-          </Timeline.Item>
-
-          <Timeline.Item dot="🧰">
-            <Text delete={isServerInfo} style={styles.text}>
-              Sign up for a free account on{" "}
-              <a
-                href="https://moralis.io?utm_source=boilerplatehosted&utm_medium=todo&utm_campaign=ethereum-boilerplate"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Moralis
-              </a>
-            </Text>
-          </Timeline.Item>
-
-          <Timeline.Item dot="💾">
-            <Text delete={isServerInfo} style={styles.text}>
-              Create a Moralis Server (
-              <a
-                href="https://docs.moralis.io/moralis-server/getting-started/create-a-moralis-server"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                How to start Moralis Server
-              </a>
-              )
-            </Text>
-          </Timeline.Item>
-
-          <Timeline.Item dot="🔏">
-            <Text delete={isServerInfo} style={styles.text}>
-              Rename <Text code>.env.example</Text> to <Text code>.env</Text> and provide your <Text strong>appId</Text>{" "}
-              and <Text strong>serverUrl</Text> from{" "}
-              <a
-                href="https://moralis.io?utm_source=boilerplatehosted&utm_medium=todo&utm_campaign=ethereum-boilerplate"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Moralis
-              </a>
-              :
-            </Text>
-            <Text code delete={isServerInfo} style={{ display: "block" }}>
-              REACT_APP_MORALIS_APPLICATION_ID = xxxxxxxxxxxx
-            </Text>
-            <Text code delete={isServerInfo} style={{ display: "block" }}>
-              REACT_APP_MORALIS_SERVER_URL = https://xxxxxx.grandmoralis.com:2053/server
-            </Text>
-          </Timeline.Item>
-
-          <Timeline.Item dot="🔁">
-            <Text delete={isServerInfo} style={styles.text}>
-              Stop the app and start it again <Text code>npm run start</Text>
-            </Text>
-          </Timeline.Item>
-
-          <Timeline.Item dot="💿">
-            <Text delete={isInchDex} style={styles.text}>
-              Install{" "}
-              <a
-                href="https://moralis.io/plugins/1inch/?utm_source=boilerplatehosted&utm_medium=todo&utm_campaign=ethereum-boilerplate"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                1inch Moralis Plugin
-              </a>{" "}
-              needed for the<Text code>{"<InchDex />"}</Text> component (optional)
-            </Text>
-          </Timeline.Item>
-
-          <Timeline.Item dot="🚀">
-            <Text style={styles.text}>BUIDL!!!</Text>
-          </Timeline.Item>
-        </Timeline>
-      </Card>
-      <div>
-        <Card
-          style={styles.card}
-          title={
-            <>
-              💣 <Text strong>Starting Local Chain (optional)</Text>
-            </>
-          }
-        >
+      <div style={{ display: "flex", gap: "10px" }}>
+        <Card style={styles.card} title={<h1 style={styles.title}>📝 User Info</h1>}>
           <Timeline mode="left" style={styles.timeline}>
+            <Timeline.Item dot="📄">
+              <Text style={styles.text}> User_id: {socialUser.user_id}</Text>
+            </Timeline.Item>
+
             <Timeline.Item dot="💿">
               <Text style={styles.text}>
-                Install{" "}
-                <a target="_blank" rel="noopener noreferrer" href="https://www.npmjs.com/package/truffle">
-                  Truffle
-                </a>{" "}
-                and{" "}
-                <a target="_blank" rel="noopener noreferrer" href="https://www.npmjs.com/package/ganache-cli">
-                  ganache-cli
-                </a>{" "}
-                <Text code>npm install -g ganache-cli truffle</Text>
+                <Text style={styles.text}> Username: {socialUser.username}</Text>
               </Text>
             </Timeline.Item>
-            <Timeline.Item dot="⚙️">
-              <Text style={styles.text}>
-                Start you local devchain: <Text code>npm run devchain</Text> on a new terminal
-              </Text>
-            </Timeline.Item>
-            <Timeline.Item dot="📡">
-              <Text style={styles.text}>
-                Deploy test contract: <Text code>npm run deploy</Text> on a new terminal
-              </Text>
-            </Timeline.Item>
-            <Timeline.Item dot="✅" style={styles.text}>
-              <Text>
-                Open the 📄<Text strong> Contract</Text> tab
-              </Text>
-            </Timeline.Item>
-          </Timeline>
-        </Card>
-        <Card
-          style={{ marginTop: "10px", ...styles.card }}
-          title={
-            <>
-              📡 <Text strong> Connecting your Local Chain to the Moralis DB</Text>
-            </>
-          }
-        >
-          <Timeline mode="left" style={styles.timeline}>
-            <Timeline.Item dot="💿">
-              <Text style={styles.text}>
-                Download{" "}
-                <a target="_blank" rel="noopener noreferrer" href="https://github.com/fatedier/frp/releases">
-                  frpc
-                </a>{" "}
-                and provide missing params in the <Text code>.env</Text> file
-              </Text>
-            </Timeline.Item>
-            <Timeline.Item dot="⚙️">
-              <Text style={styles.text}>
-                Connect your Moralis Database and Local Chain: <Text code>npm run connect</Text>
-              </Text>
-            </Timeline.Item>
+
             <Timeline.Item dot="💾">
               <Text style={styles.text}>
-                Add contract events you want to watch: <Text code>npm run watch:events</Text>
+                <Text style={styles.text}> Email: {socialUser.email}</Text>
               </Text>
             </Timeline.Item>
+
+            <Timeline.Item dot="🔁">
+              <Text style={styles.text}> Name: {socialUser.first_name ? socialUser.first_name + " " + socialUser.last_name : ''}</Text>
+            </Timeline.Item>
+
+
           </Timeline>
         </Card>
+        <div>
+          <Card
+              style={styles.card}
+              title={<h1 style={styles.title}>💣 Wallet Info</h1>}
+          >
+            <Timeline mode="left" style={styles.timeline}>
+              <Timeline.Item dot="📡">
+                <Text style={styles.text}>
+                  First: Connect correct your address you wanna link to this site
+                </Text>
+              </Timeline.Item>
+              <Timeline.Item dot="💿">
+                <Text style={styles.text}>Public-key: </Text>
+                {socialUser.public_key != null ? socialUser.public_key :(<Button onClick={async () => {
+                  await authenticate({ signingMessage: "Bizverse Authenticate "});
+                  if (Moralis.User.current().attributes && Moralis.User.current().attributes.ethAddress){
+                    // updateSocialUser( () =>{
+                    //   socialUser.user_id = socialUser.user_id;
+                    //   socialUser.access_token = socialUser.access_token;
+                    //   socialUser.username = socialUser.username;
+                    //   socialUser.email = socialUser.email;
+                    //   socialUser.first_name = socialUser.first_name;
+                    //   socialUser.last_name = socialUser.last_name;
+                    //   socialUser.public_key = Moralis.User.current().attributes.ethAddress;
+                    //   socialUser.moralis_password = null
+                    // });
+                    setSocialUser( {
+                      user_id : socialUser.user_id,
+                      access_token : socialUser.access_token,
+                      username : socialUser.username,
+                      email : socialUser.email,
+                      first_name : socialUser.first_name,
+                      last_name : socialUser.last_name,
+                      public_key : Moralis.User.current().attributes.ethAddress,
+                      moralis_password : null
+                    });
+                    var formData = new FormData();
+                    formData.append('server_key', 'c16c4d96ae7eae09f9e9100902c478ec');
+                    formData.append('data', Moralis.User.current().attributes.authData.moralisEth.data);
+                    formData.append('signature', Moralis.User.current().attributes.authData.moralisEth.signature);
+
+
+                    axios.post('https://my.bizverse.world/api/wallet-link?access_token='+socialUser.access_token,formData).then(async (data) => {
+                      if(data.data.api_status == 200){
+                        await updateSocialUser(() => {
+                          socialUser.user_id = socialUser.user_id;
+                          socialUser.access_token = socialUser.access_token;
+                          socialUser.username = socialUser.username;
+                          socialUser.email = socialUser.email;
+                          socialUser.first_name= socialUser.first_name;
+                          socialUser.last_name= socialUser.last_name;
+                          socialUser.public_key= data.data.data.moralis_key
+                          socialUser.moralis_password = data.data.data.moralis_key;
+                        })
+                        const user = new Moralis.User();
+                        user.set("username", socialUser.username);
+                        user.set("password", socialUser.moralis_password);
+                        user.set("email", socialUser.email);
+                        try {
+                          await user.signUp();
+                        } catch (error) {
+                          alert("Error: " + error.code + " " + error.message);
+                        }
+                      };
+                    });
+                  }
+                }}> Link Wallet</Button>)}
+              </Timeline.Item>
+              <Timeline.Item dot="📡">
+                <Text style={styles.text}>
+                  You can link: <Text code> only one time </Text> to your wallet. This active cannot revert
+                </Text>
+              </Timeline.Item>
+            </Timeline>
+          </Card>
+        </div>
       </div>
-    </div>
   );
 }
