@@ -50,6 +50,8 @@ function NFTMarketplace(){
     }
   })
 
+  
+
 
   useEffect(() => {  
     let options = {

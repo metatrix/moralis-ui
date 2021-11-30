@@ -173,7 +173,8 @@ function NFTBalance() {
       await Moralis.executeFunction(options)
     }
     let tokenApproved = await getERC721Approval(nftToken);
-    if(tokenApproved !== marketplaceAddress){
+    console.log(tokenApproved);
+    if(tokenApproved.toLowerCase() !== marketplaceAddress.toLowerCase()){
       let options ={
         abi:  ERC721.abi,
         contractAddress: nftToken.token_address,
@@ -191,7 +192,7 @@ function NFTBalance() {
       contractAddress: marketplaceAddress,
       functionName: 'offer',
       params:{
-        nftContract: nftToken.token_address,
+        hostContract: nftToken.token_address,
         tokenId: nftToken.token_id,
         price: Moralis.Units.Token(offerPrice, biveBalance?.decimals)
       }
