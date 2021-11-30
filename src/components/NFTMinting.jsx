@@ -1,12 +1,13 @@
-import {React, useState} from "react";
-import {Upload, Button, Input} from 'antd';
+import {React, useState } from "react";
+import {Upload, Button, Input, Select} from 'antd';
 import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvider";
 import {useMoralis} from 'react-moralis'
 import AddressInput from "./AddressInput";
 import Address from "./Address/Address";
+import contractAddress from "../contracts/contractAddresses";
 import bizverseNFT from "contracts/bizverseNFT.json"
 const {TextArea} = Input;
-
+const {Option} = Select;
 function NFTMinting(){
   const { chainId,walletAddress } = useMoralisDapp();
   const { Moralis } = useMoralis();
@@ -15,37 +16,24 @@ function NFTMinting(){
   const [title, setTitle] = useState(null);
   const [receiver, setReceiver] = useState(null);
   const [nftContract, setNftContract] = useState(null);
-  // const handleFileUpload = async (e) => {
-  //   if(e.fileList.length > 0){
-  //     let myFile = e.fileList[0];
-  //     const fileToUpload = new Moralis.File(myFile.name , myFile.originFileObj);
-  //     setFile(fileToUpload)
-  //   }
-    
-  // }
-  // const uploadIPFS = async() => {
-  //   console.log(file);
-  //   await file.saveIPFS();
-  //   console.log(file.ipfs(), file.hash());
-  // }
+  const[description, setDescription] = useState(null);
+
   const handleThumbnails = async(e) => {
     if(e.fileList.length > 0){
       setThumbnails(e.fileList[0].originFileObj);
     }
-    console.log(thumbnails);
   }
 
   const handleModel3D = async(e) => {
     if(e.fileList.length > 0){
       setModel3D(e.fileList[0].originFileObj);
     }
-    console.log(model3D);
   }
 
-  const uploadMetadata = async(title,thumnailsCID, modelCID) => {
+  const uploadMetadata = async(title,description,thumnailsCID, modelCID) => {
     const metadata = {
       title: title,
-      description: `Just a test metadata`,
+      description: description,
       image: `ipfs://${thumnailsCID}`,
       attributes:{
         model: `ipfs://${modelCID}`,
@@ -76,18 +64,26 @@ function NFTMinting(){
     setTitle(e.target.value);
   }
 
+  let ops = Object.entries(contractAddress[parseInt(chainId, 16)]).map(item=>{
+    return <Option key={item[1]} value={item[1]}>{item[0]}</Option>
+  });
+  
+  
+
+  
+
   const handleUploadIPFS = async(e) => {
     const thumbnailsFile = new Moralis.File(thumbnails.name, thumbnails);
     await thumbnailsFile.saveIPFS();
     const modelFile = new Moralis.File(model3D.name, model3D);
     await modelFile.saveIPFS();
-    await uploadMetadata(title, thumbnailsFile.hash(), modelFile.hash());
+    await uploadMetadata(title,description, thumbnailsFile.hash(), modelFile.hash());
   }
   return(
     <>
     <div>
     <Input placeholder="Title" onChange={(e)=>handleTitleChange(e)} />
-    <TextArea placeholder="Description" allowClear onChange={(e)=>console.log(e.target.value)} />
+    <TextArea placeholder="Description" allowClear onChange={(e)=>setDescription(e.target.value)} />
     <Upload maxCount={1} onChange={(e)=>handleThumbnails(e)}>
       <Button>Select Thumbnails</Button>
     </Upload>
@@ -95,7 +91,11 @@ function NFTMinting(){
       <Button>Select 3D Model</Button>
     </Upload>
     <AddressInput placeholder="Receiver" onChange={setReceiver} />
-    <AddressInput placeholder="ERC-721 Contract Address" onChange={setNftContract} />
+    <Select style={{ width: 300 }} onChange={(e)=> setNftContract(e)}>      
+      {ops}
+    </Select>
+    <br/>
+    {/* <AddressInput placeholder="ERC-721 Contract Address" onChange={setNftContract} /> */}
     <Button onClick={(e)=> handleUploadIPFS()}>Mint</Button>
     
     </div>

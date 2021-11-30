@@ -45,9 +45,18 @@ function NFTBalance() {
   const { fetchERC20Balance } = useERC20Balance();
   const [offerFee, setOfferFee] = useState(null);
   
-  let biveAddress = contractAddress[parseInt(chainId, 16)].bive;
-  let marketplaceAddress = contractAddress[parseInt(chainId, 16)].marketplace;
-    
+  let biveAddress = contractAddress[parseInt(chainId, 16)]?.bive;
+  let marketplaceAddress = contractAddress[parseInt(chainId, 16)]?.marketplace;
+
+
+
+  const decimalsCall = useAPIContract({
+    chain:chainId,
+    abi: bive.abi,
+    address: biveAddress,
+    function_name: 'decimals',
+    params:{}
+  })
 
 
   const listingFeeCall = useAPIContract({
@@ -109,6 +118,7 @@ function NFTBalance() {
     console.log(nft);
     listingFeeCall.runContractFunction()
     allowanceCall.runContractFunction();
+    decimalsCall.runContractFunction();
     fetchERC20Balance().then((assets)=>{
       setBiveBalance(assets.find(asset=>asset.token_address===biveAddress));
     })
@@ -131,18 +141,18 @@ function NFTBalance() {
   }
 
   const calculateFee = ()=>{
-    console.log(offerPrice, biveBalance?.decimals);
+    console.log(offerPrice,marketplaceAddress, decimalsCall?.contractResponse,Moralis.Units.Token(offerPrice.toString(), decimalsCall?.contractResponse));
     let options = {
       chain: chainId,
       abi: marketplace.abi,
       address: marketplaceAddress,
       function_name:'calculateFee',
       params:{
-        amount: Moralis.Units.Token(offerPrice.toString(), biveBalance?.decimals)
+        amount: (Moralis.Units.Token(offerPrice, decimalsCall?.contractResponse)).toString()
       }
     }
-    Web3API.native.runContractFunction(options).then((res)=>{
-      setOfferFee(res);
+    Web3API.native.runContractFunction(options).then((response)=>{
+      setOfferFee(response)
     })
   }
 
@@ -290,10 +300,10 @@ function NFTBalance() {
           preview={false}
           style={{ borderRadius: "15px" }}
         />
-        {Moralis.Units.FromWei(allowanceCall?.contractResponse, biveBalance?.decimals).toFixed(6)}
+        {Moralis.Units.FromWei(allowanceCall?.contractResponse, decimalsCall?.contractResponse).toFixed(6)}
         {biveBalance?.symbol}
       </div>
-      <p><strong>Listing Fee Calculation {Moralis.Units.FromWei(offerFee, biveBalance?.decimals)}</strong></p>
+      <p><strong>Listing Fee Calculation {Moralis.Units.FromWei(offerFee, decimalsCall?.contractResponse)}</strong></p>
       <p><strong>You need to approve enough {biveBalance?.symbol} to the marketplace for listing fee</strong></p>
 
       <div style={{
