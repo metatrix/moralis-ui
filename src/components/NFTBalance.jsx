@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { useMoralis, useNFTBalances } from "react-moralis";
-import { Card, Image, Tooltip, Modal, Input } from "antd";
+import { Card, Image, Tooltip, Modal, Input, Button } from "antd";
 import { useERC20Balance } from "hooks/useERC20Balance";
 import {useAPIContract} from 'hooks/useAPIContract'
 import {useMoralisWeb3Api} from "react-moralis";
@@ -11,13 +11,12 @@ import { FileSearchOutlined, SendOutlined, ShoppingCartOutlined } from "@ant-des
 import { useMoralisDapp } from "providers/MoralisDappProvider/MoralisDappProvider";
 import { getExplorer } from "helpers/networks";
 import AddressInput from "./AddressInput";
-
+import contractAddress from "../contracts/contractAddresses";
 
 const { Meta } = Card;
 
 
-const biveAddress = "0x477a4143a0d28922e00c677f89a2347081f4d6d1";
-const marketplaceAddress = "0x8417EBB62b71D55fa60e3EF15688754d9e460B46";
+
 const styles = {
   NFTs: {
     display: "flex",
@@ -44,12 +43,27 @@ function NFTBalance() {
   const [biveBalance, setBiveBalance] = useState(null);
   const [offerPrice, setOfferPrice] = useState(null);
   const { fetchERC20Balance } = useERC20Balance();
+  const [offerFee, setOfferFee] = useState(null);
   
-  const listingPriceCall = useAPIContract({
+  let biveAddress = contractAddress[parseInt(chainId, 16)]?.bive;
+  let marketplaceAddress = contractAddress[parseInt(chainId, 16)]?.marketplace;
+
+
+
+  const decimalsCall = useAPIContract({
+    chain:chainId,
+    abi: bive.abi,
+    address: biveAddress,
+    function_name: 'decimals',
+    params:{}
+  })
+
+
+  const listingFeeCall = useAPIContract({
     chain: chainId,
     abi: marketplace.abi,
     address: marketplaceAddress,
-    function_name:'listingPrice',
+    function_name:'listingFee',
   })
   
 
@@ -102,8 +116,9 @@ function NFTBalance() {
 
   const handleOfferingMarketplace = async (nft) => {
     console.log(nft);
-    listingPriceCall.runContractFunction();
+    listingFeeCall.runContractFunction()
     allowanceCall.runContractFunction();
+    decimalsCall.runContractFunction();
     fetchERC20Balance().then((assets)=>{
       setBiveBalance(assets.find(asset=>asset.token_address===biveAddress));
     })
@@ -125,25 +140,41 @@ function NFTBalance() {
     return await Web3API.native.runContractFunction(options);
   }
 
+  const calculateFee = ()=>{
+    console.log(offerPrice,marketplaceAddress, decimalsCall?.contractResponse,Moralis.Units.Token(offerPrice.toString(), decimalsCall?.contractResponse));
+    let options = {
+      chain: chainId,
+      abi: marketplace.abi,
+      address: marketplaceAddress,
+      function_name:'calculateFee',
+      params:{
+        amount: (Moralis.Units.Token(offerPrice, decimalsCall?.contractResponse)).toString()
+      }
+    }
+    Web3API.native.runContractFunction(options).then((response)=>{
+      setOfferFee(response)
+    })
+  }
+
   const handleApproveListingPrice = async (nftToken) =>{
     let allowance = allowanceCall?.contractResponse;
-    let listingFee = listingPriceCall?.contractResponse;
 
     
-    if(allowance < listingFee) {
+    if(allowance < offerFee) {
       const options = {
         abi: bive.abi,
         contractAddress: biveAddress,
         functionName:'approve',
         params:{
           spender: marketplaceAddress,
-          amount: listingFee - allowance
+          amount: offerFee - allowance
         }
       };
       await Moralis.executeFunction(options)
     }
     let tokenApproved = await getERC721Approval(nftToken);
-    if(tokenApproved !== marketplaceAddress){
+    console.log(tokenApproved);
+    if(tokenApproved.toLowerCase() !== marketplaceAddress.toLowerCase()){
       let options ={
         abi:  ERC721.abi,
         contractAddress: nftToken.token_address,
@@ -161,7 +192,7 @@ function NFTBalance() {
       contractAddress: marketplaceAddress,
       functionName: 'offer',
       params:{
-        nftContract: nftToken.token_address,
+        hostContract: nftToken.token_address,
         tokenId: nftToken.token_id,
         price: Moralis.Units.Token(offerPrice, biveBalance?.decimals)
       }
@@ -204,13 +235,13 @@ function NFTBalance() {
               }
               key={index}
             >
-              <Meta title={nft.name + " " + nft.token_id} description={nft.token_address} />
+              <Meta title={nft?.metadata?.title} description={nft?.metadata?.description} />
             </Card>
           ))}
       </div>
       {modalType === 'transfer' ? 
       <Modal
-        title={`Transfer ${nftToken?.name || "NFT"}`}
+        title={`Transfer ${nftToken?.metadata?.title || "NFT"}`}
         visible={visible}
         onCancel={() => setVisibility(false)}
         onOk={() => transfer(nftToken, amountToSend, receiverToSend)}
@@ -223,11 +254,11 @@ function NFTBalance() {
         )}
       </Modal> : 
       <Modal
-      title={`Offer ${nftToken?.name || "NFT"} for selling`}
+      title={`Offer ${nftToken?.metadata?.title || "NFT"} for selling`}
       visible={visible}
       onCancel={() => setVisibility(false)}
       onOk={() => handleApproveListingPrice(nftToken)}
-      confirmLoading={listingPriceCall.isLoading && allowanceCall.isLoading}
+      confirmLoading={listingFeeCall.isLoading && allowanceCall.isLoading}
       okText="Offer"
     >
       <div style={{
@@ -237,8 +268,7 @@ function NFTBalance() {
           gap: "8px",
         }}
       >
-        Listing Fee
-        <Image
+        {/* <Image
           src={
             // item.logo ||
             "https://etherscan.io/images/main/empty-token.png"
@@ -248,9 +278,9 @@ function NFTBalance() {
           height="24px"
           preview={false}
           style={{ borderRadius: "15px" }}
-        />
-        {Moralis.Units.FromWei(listingPriceCall?.contractResponse, biveBalance?.decimals).toFixed(6)}
-        {biveBalance?.symbol}
+        /> */}
+        <span>Listing fee : </span>
+        {Moralis.Units.FromWei(listingFeeCall?.contractResponse,2).toFixed(2)} %
         
       </div>
       <div style={{
@@ -271,9 +301,10 @@ function NFTBalance() {
           preview={false}
           style={{ borderRadius: "15px" }}
         />
-        {Moralis.Units.FromWei(allowanceCall?.contractResponse, biveBalance?.decimals).toFixed(6)}
+        {Moralis.Units.FromWei(allowanceCall?.contractResponse, decimalsCall?.contractResponse).toFixed(6)}
         {biveBalance?.symbol}
       </div>
+      <p><strong>Listing Fee Calculation {Moralis.Units.FromWei(offerFee, decimalsCall?.contractResponse)}</strong></p>
       <p><strong>You need to approve enough {biveBalance?.symbol} to the marketplace for listing fee</strong></p>
 
       <div style={{
@@ -283,6 +314,7 @@ function NFTBalance() {
           gap: "8px",
         }}>
         <Input placeholder="Amount to Offer" onChange={(e) => handleOfferPrice(e)} />
+        <Button onClick={()=> calculateFee()}>Calculate Fee</Button>  
       </div>
       
       

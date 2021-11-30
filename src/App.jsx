@@ -126,10 +126,6 @@ const App = ({ isServerInfo }) => {
               <Route path="/nftMinting">
                 <NFTMinting />
               </Route>
-
-              <Route path="/contract">
-                <Contract />
-              </Route>
               <Route exact path="/">
                 <Redirect to="/quickstart" />
               </Route>
