@@ -23,6 +23,8 @@ import MenuItems from "./components/MenuItems";
 import {store, useGlobalState} from 'state-pool';
 const { Header, Footer } = Layout;
 
+store.setState("logged", false);
+
 const styles = {
   content: {
     display: "flex",
@@ -125,6 +127,9 @@ const App = ({ isServerInfo }) => {
               </Route>
               <Route path="/nftMinting">
                 <NFTMinting />
+              </Route>
+              <Route path="/contract">
+                <Contract />
               </Route>
               <Route exact path="/">
                 <Redirect to="/quickstart" />

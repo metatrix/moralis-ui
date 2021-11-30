@@ -127,22 +127,41 @@ function Account() {
                                     formData.append('type', 'get_by_id');
                                     formData.append('id', 1);
                                     axios.post('https://my.bizverse.world/api/profile?access_token=' + dataParent.data.access_token,formData).then(async (data) => {
-                                        updateSocialUser(() => {
-                                            socialUser.user_id = dataParent.data.user_id;
-                                            socialUser.access_token = dataParent.data.access_token;
-                                            socialUser.username = data.data.data.username;
-                                            socialUser.email = data.data.data.email;
-                                            socialUser.first_name= data.data.data.first_name;
-                                            socialUser.last_name= data.data.data.last_name;
-                                            socialUser.public_key= data.data.data.public_key;
-                                            socialUser.moralis_password = data.data.data.moralis_key;
-                                        })
-                                        const user = await Moralis.User.logIn(socialUser.username, socialUser.moralis_password);
-                                        //const user = await Moralis.User.logIn('hoanghm', '123123');
-                                        _setUser(user);
-                                        console.log(socialUser);
-                                        setWalletAddress(socialUser.public_key);
-                                        setLogged(true);
+                                        if (data.data.data.public_key){
+                                            updateSocialUser(() => {
+                                                socialUser.user_id = dataParent.data.user_id;
+                                                socialUser.access_token = dataParent.data.access_token;
+                                                socialUser.username = data.data.data.username;
+                                                socialUser.email = data.data.data.email;
+                                                socialUser.first_name= data.data.data.first_name;
+                                                socialUser.last_name= data.data.data.last_name;
+                                                socialUser.public_key= data.data.data.public_key;
+                                                socialUser.moralis_password = data.data.data.moralis_key;
+                                            })
+                                            const user = await Moralis.User.logIn(socialUser.username, socialUser.moralis_password);
+                                            //const user = await Moralis.User.logIn('hoanghm', '123123');
+                                            _setUser(user);
+                                            setWalletAddress(socialUser.public_key);
+                                            setLogged(true);
+                                        }
+                                        else{
+                                            await updateSocialUser(() => {
+                                                socialUser.user_id = dataParent.data.user_id;
+                                                socialUser.access_token = dataParent.data.access_token;
+                                                socialUser.username = data.data.data.username;
+                                                socialUser.email = data.data.data.email;
+                                                socialUser.first_name= data.data.data.first_name;
+                                                socialUser.last_name= data.data.data.last_name;
+                                                socialUser.public_key= null;
+                                                socialUser.moralis_password = null;
+                                            });
+
+                                            console.log('here',socialUser)
+                                            alert("Your account have not link with any wallet");
+                                            setLogged(true);
+                                        }
+
+                                        // setLogged(true);
                                         // console.log(Moralis.User.current());
                                         // = true;
                                     }).catch();
